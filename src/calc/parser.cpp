@@ -17,12 +17,15 @@ void Parser::expect(TokenType type, const char* message) {
     }
 }
 
-std::unique_ptr<Expr> Parser::parse() {
-    auto expr = parse_expression();
+Program Parser::parse() {
+    Program p = parse_program();
+
     if (cur_.type != TokenType::End) {
-        throw std::runtime_error("Unexpected token '" + cur_.lexeme + "' at position " + std::to_string(cur_.pos));
+        throw std::runtime_error(
+            "Unexpected token '" + cur_.lexeme + "' at position " + std::to_string(cur_.pos)
+        );
     }
-    return expr;
+    return p;
 }
 
 std::unique_ptr<Expr> Parser::parse_expression() {
@@ -83,7 +86,46 @@ std::unique_ptr<Expr> Parser::parse_factor() {
         return inside;
     }
 
+    if (cur_.type == TokenType::Ident) {
+        std::string name = cur_.lexeme;
+        advance();
+        return std::make_unique<VarExpr>(std::move(name));
+    }
+
     throw std::runtime_error("Expected number or '(' at position " + std::to_string(cur_.pos));
+}
+
+Program Parser::parse_program() {
+    Program p;
+
+    if (cur_.type == TokenType::End) return p;
+
+    p.stmts.push_back(parse_stmt());
+
+    while (cur_.type == TokenType::Semicolon) {
+        advance();
+        if (cur_.type == TokenType::End) break;
+        p.stmts.push_back(parse_stmt());
+    }
+
+    return p;
+}
+
+std::unique_ptr<Stmt> Parser::parse_stmt() {
+    if (cur_.type == TokenType::Ident) {
+        Token ident = cur_;
+        Token next = lexer_.peek();
+
+        if (next.type == TokenType::Equal) {
+            advance();
+            advance();
+            auto value = parse_expression();
+            return std::make_unique<AssignStmt>(ident.lexeme, std::move(value));
+        }
+    }
+
+    auto e = parse_expression();
+    return std::make_unique<ExprStmt>(std::move(e));
 }
 
 } // namespace calc

@@ -8,7 +8,7 @@ namespace calc {
 class Parser {
 public:
     explicit Parser(Lexer lexer);
-    std::unique_ptr<Expr> parse();
+    Program parse();
 
 private:
     Lexer lexer_;
@@ -20,6 +20,8 @@ private:
     std::unique_ptr<Expr> parse_expression();
     std::unique_ptr<Expr> parse_term();
     std::unique_ptr<Expr> parse_factor();
+    Program parse_program();
+    std::unique_ptr<Stmt> parse_stmt();
 };
 
 } // namespace calc

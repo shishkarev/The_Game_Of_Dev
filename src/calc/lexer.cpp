@@ -73,6 +73,20 @@ Token Lexer::next() {
         return read_number();
     }
 
+    if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
+        std::size_t start = i_;
+        while (!eof()) {
+            char cc = current();
+            if (std::isalnum(static_cast<unsigned char>(cc)) || cc == '_') ++i_;
+            else break;
+        }
+        Token id;
+        id.type = TokenType::Ident;
+        id.pos = start;
+        id.lexeme = input_.substr(start, i_ - start);
+        return id;
+    }
+
     ++i_;
 
     switch (c) {
@@ -82,6 +96,8 @@ Token Lexer::next() {
         case '/': t.type = TokenType::Slash; t.lexeme = "/"; return t;
         case '(': t.type = TokenType::LParen; t.lexeme = "("; return t;
         case ')': t.type = TokenType::RParen; t.lexeme = ")"; return t;
+        case '=': t.type = TokenType::Equal;     t.lexeme = "="; return t;
+        case ';': t.type = TokenType::Semicolon; t.lexeme = ";"; return t;
         default:
             throw std::runtime_error(
                 "Unexpected character '" + std::string(1, c) +

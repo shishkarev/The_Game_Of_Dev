@@ -16,8 +16,9 @@ int main(int argc, char** argv) {
     try {
         calc::Lexer lex(input);
         calc::Parser parser(std::move(lex));
-        auto ast = parser.parse();
-        double result = calc::eval(*ast);
+        auto program = parser.parse();
+        calc::Env env;
+        double result = calc::eval(program, env);
         std::cout << result << "\n";
         return 0;
     } catch (const std::exception& ex) {

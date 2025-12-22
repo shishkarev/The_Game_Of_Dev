@@ -5,6 +5,9 @@
 namespace calc{
 enum class TokenType{
     Number,
+    Ident,
+    Equal,
+    Semicolon,
     Plus,
     Minus,
     Star,

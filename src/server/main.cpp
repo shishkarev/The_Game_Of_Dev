@@ -29,16 +29,19 @@ int main(){
         const std::string expr = req.body;
 
         try {
-            calc::Lexer lex(expr);
+            calc::Lexer lex(req.body);
             calc::Parser parser(std::move(lex));
-            auto ast = parser.parse();
-            double result = calc::eval(*ast);
 
-            res.status = 200;
-            res.set_content("{\"result\":" + std::to_string(result) + "}", "application/json; charset=utf-8");
+            calc::Program program = parser.parse();
+
+            calc::Env env;
+
+            double result = calc::eval(program, env);
+
+            res.set_content(std::to_string(result), "text/plain; charset=utf-8");
         } catch (const std::exception& ex) {
             res.status = 400;
-            res.set_content("{\"error\":\"" + json_escape(ex.what()) + "\"}", "application/json; charset=utf-8");
+            res.set_content(std::string("Error: ") + ex.what(), "text/plain; charset=utf-8");
         }
     });
 
