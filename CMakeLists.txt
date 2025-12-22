@@ -8,3 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(The_Game_Of_Dev
     src/main.cpp
 )
+
+add_executable(echo_server
+    src/server/main.cpp
+)
+
+target_include_directories(echo_server PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/httplib
+)
