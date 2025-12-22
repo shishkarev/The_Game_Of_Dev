@@ -1,0 +1,26 @@
+{
+  "name": "The_Game_Of_Dev",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools"
+      ],
+      "settings": {
+        "cmake.generator": "Ninja",
+        "cmake.sourceDirectory": "/workspace",
+        "cmake.buildDirectory": "/workspace/build"
+      }
+    }
+  },
+
+  "postCreateCommand": "cmake -S . -B build -G Ninja && cmake --build build"
+}
