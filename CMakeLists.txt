@@ -16,3 +16,19 @@ add_executable(echo_server
 target_include_directories(echo_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/httplib
 )
+
+add_library(calc_core
+    src/calc/lexer.cpp
+    src/calc/parser.cpp
+    src/calc/eval.cpp
+)
+
+target_include_directories(calc_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_executable(calc_cli
+    src/calc_cli.cpp
+)
+
+target_link_libraries(calc_cli PRIVATE calc_core)
