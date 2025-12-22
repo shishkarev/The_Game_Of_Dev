@@ -42,6 +42,20 @@ int main(){
         }
     });
 
+    server.Post("/cmd", [](const httplib::Request& req, httplib::Response& res) {
+        const std::string cmd = req.body;
+
+        if (cmd == "echo") {
+            res.status = 200;
+            res.set_content("echo", "text/plain; charset=utf-8");
+            return;
+        }
+
+        res.status = 400;
+        res.set_content("{\"error\":\"Unknown command\"}", "application/json; charset=utf-8");
+    });
+
+
 
     const std::string host = "0.0.0.0";
     const int port = 8080;

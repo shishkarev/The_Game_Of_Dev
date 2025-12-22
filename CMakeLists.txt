@@ -37,3 +37,5 @@ target_link_libraries(echo_server PRIVATE calc_core)
 
 target_include_directories(echo_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+add_executable(calc src/calc_client.cpp)
+target_include_directories(calc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/httplib)

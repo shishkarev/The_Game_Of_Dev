@@ -89,3 +89,17 @@ cmake --build build
 ```bash
 ./build/echo_server
 ```
+
+### CLI client
+
+Сервер должен быть запущен:
+```bash
+./build/echo_server
+```
+
+Клиент:
+```bash
+./build/calc -c echo
+./build/calc -e 2 + 2
+./build/calc -e 10/0
+```
