@@ -32,3 +32,8 @@ add_executable(calc_cli
 )
 
 target_link_libraries(calc_cli PRIVATE calc_core)
+
+target_link_libraries(echo_server PRIVATE calc_core)
+
+target_include_directories(echo_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
