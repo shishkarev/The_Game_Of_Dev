@@ -251,3 +251,22 @@ cd sessB
 ./build/calc -u student -e 2 \* pi \* 3
 ./build/calc -u admin   -e 2 \* pi \* 3   # будет ошибка, т.к. другой user
 ```
+
+---
+
+## Branches / Levels (history)
+
+Разработка велась по уровням (веткам). Ветка [`main`](https://github.com/shishkarev/The_Game_Of_Dev/tree/main) содержит **финальный рабочий вариант**.
+
+| Level | Branch | Что добавлено |
+|------:|--------|---------------|
+| 1–4   | [`level_1-4`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_1-4) | Базовый каркас проекта, сборка, hello world |
+| 5     | [`level_5`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_5) | HTTP сервер `echo_server` + эндпоинт `/echo` |
+| 6     | [`level_6`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_6) | Ядро калькулятора: лексер/парсер/AST/eval + `calc_cli` (локальный) |
+| 7     | [`level_7`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_7) | Интеграция калькулятора в сервер: `/calc` |
+| 8     | [`level_8`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_8) | CLI HTTP-клиент `calc` (`-e`, `-c`, поддержка `calc -e 2 + 2`) |
+| 9     | [`level_9`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_9) | Мини-язык: переменные `a=...`, несколько выражений через `;` |
+| 10    | [`level_10`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_10) | Состояние на сервере (переменные живут между запросами) + `clean` |
+| 11    | [`level_11`](https://github.com/shishkarev/The_Game_Of_Dev/tree/level_11) | Сессии (per-client state) через `X-Session-Id`; `clean` чистит только текущую сессию |
+
+**Final:** [`main`](https://github.com/shishkarev/The_Game_Of_Dev/tree/main) = состояние проекта после `level_11` (все фичи включены).
