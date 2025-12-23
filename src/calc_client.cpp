@@ -126,17 +126,37 @@ int main(int argc, char** argv) {
     }
 
     double value = 0.0;
-    std::string err;
-    if (!parse_result_json(res->body, value, err)) {
-        std::cerr << "error: bad server response: " << res->body << "\n";
-        return 1;
-    }
+    // std::string err;
+    // if (!parse_result_json(res->body, value, err)) {
+    //     std::cerr << "error: bad server response: " << res->body << "\n";
+    //     return 1;
+    // }
+    const std::string body = res->body;
 
     if (res->status == 200) {
-        std::cout << value << "\n";
-        return 0;
+        if (body.empty()) return 0;
+
+        try {
+            size_t idx = 0;
+            double v = std::stod(body, &idx);
+
+            while (idx < body.size() && std::isspace(static_cast<unsigned char>(body[idx]))) idx++;
+
+            if (idx != body.size()) {
+                std::cerr << "error: bad server response: " << body << "\n";
+                return 1;
+            }
+
+            std::cout << v << "\n";
+            return 0;
+        } catch (...) {
+            std::cerr << "error: bad server response: " << body << "\n";
+            return 1;
+        }
     }
 
-    std::cerr << "error: " << err << "\n";
+    std::string msg = res->body;
+    if (msg.rfind("Error: ", 0) == 0) msg = msg.substr(7);
+    std::cerr << "error: " << msg << "\n";
     return 1;
 }
