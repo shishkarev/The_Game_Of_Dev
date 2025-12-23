@@ -4,6 +4,7 @@
 #include <vector>
 #include <cctype>
 
+// join argv[from..] через пробел, чтобы поддержать: calc -e 2 + 2 (без кавычек)
 static std::string join_args(int argc, char** argv, int from) {
     std::string out;
     for (int i = from; i < argc; ++i) {
@@ -13,13 +14,17 @@ static std::string join_args(int argc, char** argv, int from) {
     return out;
 }
 
+// очень простой разбор {"result":14.000000} и {"error":"..."}
 static bool parse_result_json(const std::string& body, double& out_value, std::string& out_error) {
+    // ищем "result":
     auto rpos = body.find("\"result\"");
     if (rpos != std::string::npos) {
         auto colon = body.find(':', rpos);
         if (colon == std::string::npos) return false;
+        // пропускаем пробелы
         size_t i = colon + 1;
         while (i < body.size() && std::isspace(static_cast<unsigned char>(body[i]))) ++i;
+        // читаем число до , или }
         size_t j = i;
         while (j < body.size() && (std::isdigit(static_cast<unsigned char>(body[j])) ||
                                    body[j] == '.' || body[j] == '-' || body[j] == '+' ||
@@ -34,6 +39,7 @@ static bool parse_result_json(const std::string& body, double& out_value, std::s
         }
     }
 
+    // ищем "error":"..."
     auto epos = body.find("\"error\"");
     if (epos != std::string::npos) {
         auto colon = body.find(':', epos);
@@ -70,6 +76,8 @@ int main(int argc, char** argv) {
     std::string cmd;
     std::string expr;
 
+    // Простой парсинг аргументов:
+    // -H host, -P port, -c command, -e expression...
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
 
@@ -83,7 +91,7 @@ int main(int argc, char** argv) {
         } else if (a == "-e" && i + 1 < argc) {
             mode_expr = true;
             expr = join_args(argc, argv, i + 1);
-            break;
+            break; // всё остальное — часть выражения
         } else if (a == "-h" || a == "--help") {
             print_usage();
             return 0;
@@ -101,12 +109,13 @@ int main(int argc, char** argv) {
     }
 
     httplib::Client client(host, port);
-    client.set_connection_timeout(2);
+    client.set_connection_timeout(2); // сек
     client.set_read_timeout(5);
     client.set_write_timeout(5);
 
     if (mode_cmd) {
-        auto res = client.Post("/cmd", cmd, "text/plain; charset=utf-8");
+        // Пока поддержим "echo": отправляем body=cmd на /echo и печатаем ответ
+        auto res = client.Post("/echo", cmd, "text/plain; charset=utf-8");
         if (!res) {
             std::cerr << "error: cannot connect to " << host << ":" << port << "\n";
             return 1;
@@ -119,6 +128,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // mode_expr: отправляем выражение на /calc, ждём JSON
     auto res = client.Post("/calc", expr, "text/plain; charset=utf-8");
     if (!res) {
         std::cerr << "error: cannot connect to " << host << ":" << port << "\n";
@@ -126,37 +136,18 @@ int main(int argc, char** argv) {
     }
 
     double value = 0.0;
-    // std::string err;
-    // if (!parse_result_json(res->body, value, err)) {
-    //     std::cerr << "error: bad server response: " << res->body << "\n";
-    //     return 1;
-    // }
-    const std::string body = res->body;
-
-    if (res->status == 200) {
-        if (body.empty()) return 0;
-
-        try {
-            size_t idx = 0;
-            double v = std::stod(body, &idx);
-
-            while (idx < body.size() && std::isspace(static_cast<unsigned char>(body[idx]))) idx++;
-
-            if (idx != body.size()) {
-                std::cerr << "error: bad server response: " << body << "\n";
-                return 1;
-            }
-
-            std::cout << v << "\n";
-            return 0;
-        } catch (...) {
-            std::cerr << "error: bad server response: " << body << "\n";
-            return 1;
-        }
+    std::string err;
+    if (!parse_result_json(res->body, value, err)) {
+        std::cerr << "error: bad server response: " << res->body << "\n";
+        return 1;
     }
 
-    std::string msg = res->body;
-    if (msg.rfind("Error: ", 0) == 0) msg = msg.substr(7);
-    std::cerr << "error: " << msg << "\n";
+    if (res->status == 200) {
+        std::cout << value << "\n";
+        return 0;
+    }
+
+    // Сервер вернул ошибку (например /0)
+    std::cerr << "error: " << err << "\n";
     return 1;
 }

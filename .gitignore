@@ -7,3 +7,4 @@ build/
 *.dylib
 *.exe
 .DS_Store
+.calc_session

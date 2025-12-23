@@ -4,7 +4,7 @@
 
 Сборка даёт несколько бинарников:
 - `The_Game_Of_Dev` — hello world
-- `echo_server` — HTTP сервер (`/echo`, `/calc`)
+- `echo_server` — HTTP сервер (`/echo`, `/calc`, `/cmd`)
 - `calc_cli` — локальный CLI калькулятор (парсит и считает без сети)
 - `calc` — CLI HTTP-клиент (отправляет выражение на сервер)
 
@@ -38,13 +38,22 @@ cmake --build build
 curl -i -X POST http://localhost:8080/echo -d "hi"
 ```
 
-Тест калькулятора (HTTP):
+Тест калькулятора (HTTP) — сервер возвращает JSON:
 
 ```bash
 curl -i -X POST http://localhost:8080/calc -d "2*(3+4)"
-curl -i -X POST http://localhost:8080/calc -d "10/0"
 curl -i -X POST http://localhost:8080/calc -d "a=2+3; a*10"
-curl -i -X POST http://localhost:8080/calc -d "a=10; b=a/2; b+1"
+curl -i -X POST http://localhost:8080/calc -d "10/0"
+```
+
+Пример успешного ответа:
+```json
+{"result":18.84}
+```
+
+Пример ошибки:
+```json
+{"error":"Division by zero"}
 ```
 
 ---
@@ -170,43 +179,75 @@ cmake --build build
 ./build/echo_server
 ```
 
-## Level 10: Server state (variables) + clean
+---
 
-На уровне 10 сервер хранит **состояние переменных** между запросами:
-- все выражения выполняются в общем `Env` (переменные сохраняются)
-- доступ к `Env` защищён `std::mutex`
-- команда `clean` сбрасывает состояние (очищает `Env`)
+## Level 10: Server state (single shared Env) + clean
 
-### Проверка
+На уровне 10 сервер хранил переменные в одном общем `Env` (на весь сервер), а команда `clean`
+очищала его полностью.
 
-1) Запуск сервера:
+Начиная с Level 11 состояние стало **per-session** (см. ниже).
+
+---
+
+## Level 11 — Sessions (per-client state)
+
+Сервер хранит состояние (переменные калькулятора) **по сессиям**.
+
+### Как работает сессия
+
+- Клиент `calc` отправляет заголовок `X-Session-Id` (если он уже есть).
+- Если `X-Session-Id` не пришёл — сервер генерирует новый и возвращает его обратно в ответе.
+- Клиент `calc` сохраняет session id локально в файле **`.calc_session`** в *текущей директории*.
+  Поэтому разные папки = разные файлы `.calc_session` = разные сессии.
+- Команда `clean` сбрасывает состояние **только текущей сессии**, не влияя на другие.
+
+### CLI usage
+
+Команды:
 ```bash
-./build/echo_server
-```
-
-В другом терминале проверка команд и переменных:
-```bash
-# Проверка /cmd
 ./build/calc -c echo
-
-# Присваивание переменной на сервере
-./build/calc -e pi=3.14
-
-# Использование сохранённой переменной (состояние сохраняется между запросами)
-./build/calc -e 2 \* pi \* 3
-
-# Сброс состояния (очистка всех переменных)
 ./build/calc -c clean
-
-# После clean переменная исчезает
-./build/calc -e 2 \* pi \* 3
 ```
 
-Ожидаемый вывод примерно такой:
+Вычисления:
 ```bash
-echo
-3.14
-18.84
-OK
-error: Unknown variable 'pi'
+./build/calc -e 2 + 2
+./build/calc -e "a=2+3; a*10"
+./build/calc -e 10/0
+```
+
+### Две независимые сессии (самый простой способ)
+
+Самый простой способ создать 2 независимые сессии — работать из разных папок
+(так у каждой будет свой `.calc_session`).
+
+Terminal A:
+```bash
+mkdir -p sessA
+cd sessA
+../build/calc -e pi=3.14
+../build/calc -e 2 \* pi \* 3
+../build/calc -c clean
+../build/calc -e 2 \* pi \* 3   # ошибка: pi очищен только в sessA
+```
+
+Terminal B:
+```bash
+mkdir -p sessB
+cd sessB
+../build/calc -e pi=1
+../build/calc -e 2 \* pi \* 3   # работает и не зависит от sessA
+```
+
+### Сессии по юзеру
+
+Если включён режим "по юзеру", клиент добавляет заголовок `X-User` (например через ключ `-u`),
+и сервер хранит состояние отдельно для каждой пары `(user, session_id)`.
+
+Пример:
+```bash
+./build/calc -u student -e pi=3.14
+./build/calc -u student -e 2 \* pi \* 3
+./build/calc -u admin   -e 2 \* pi \* 3   # будет ошибка, т.к. другой user
 ```
